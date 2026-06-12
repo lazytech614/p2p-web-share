@@ -16,6 +16,7 @@ export interface ChunkMessage {
   payload: {
     chunk: ArrayBuffer;
     index: number;
+    iv: Uint8Array;
     totalChunks: number;
   };
 }

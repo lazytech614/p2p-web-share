@@ -9,10 +9,9 @@ import {
   calculateSpeed, 
   CHUNK_SIZE, 
   estimateTimeLeft, 
-  reassembleChunks, 
   splitFileIntoChunks 
 } from "@/lib/fileChunker";
-import { hashBlob, hashFile } from "@/lib/crypto";
+import { decryptChunk, encryptChunk, hashBlob, hashFile } from "@/lib/crypto";
 import { triggerDownload } from "@/lib/download";
 import { clearChunks, loadAllChunks, saveChunk } from "@/lib/indexedDb";
 
@@ -27,10 +26,8 @@ export function useFileTransfer() {
     const [downloadSpeed, setDownloadSpeed] = useState(0);
     const [downloadETA, setDownloadETA] = useState("");
     const [verified, setVerified] = useState<boolean | null>(null);
-    const [history, setHistory] = useState<TransferRecord[]>([]);
     const [autoDownload, _setAutoDownload] = useState(false)
 
-    const chunksRef = useRef<ArrayBuffer[]>([]);
     const incomingFileRef = useRef<FileMetadata | null>(null);
     const downloadStartTimeRef = useRef(0);
     const senderHashRef = useRef("");
@@ -50,16 +47,6 @@ export function useFileTransfer() {
 
       const isValid = senderHashRef.current === rebuiltHashRef.current;
       setVerified(isValid);
-
-      setHistory(prev => [
-        ...prev,
-        {
-          name: incomingFileRef.current!.name,
-          size: incomingFileRef.current!.size,
-          verified: true,
-          timestamp: Date.now(),
-        },
-      ]);
     };
 
     const sendMetadata = (connection: DataConnection) => {
@@ -78,7 +65,7 @@ export function useFileTransfer() {
         connection.send(metadata);
     };
 
-    const sendFile = async (connection: DataConnection) => {
+    const sendFile = async (connection: DataConnection, aesKey: CryptoKey | null) => {
         if (!connection) return;
         if (!selectedFile) return;
 
@@ -99,12 +86,16 @@ export function useFileTransfer() {
           const blob = selectedFile.slice(start, end);
           const chunk = await blob.arrayBuffer();
 
+          if(!aesKey) return;
+          const { iv, encrypted } = await encryptChunk(chunk, aesKey);
+
           await waitForBuffer(connection);
 
           connection.send({
             type: "file-chunk",
             payload: {
-              chunk,
+              chunk: encrypted,
+              iv,
               index,
               totalChunks,
             },
@@ -128,12 +119,11 @@ export function useFileTransfer() {
         });
     };
 
-    const handleIncomingData = async (rawData: unknown) => {
+    const handleIncomingData = async (rawData: unknown, aesKey: CryptoKey | null) => {
         const data = rawData as DataChannelMessage;
         
         if (data.type === "metadata") {
             setIncomingFile(data.payload);
-            // chunksRef.current = [];
             receivedChunksRef.current = 0;
             bytesReceivedRef.current = 0;
             await clearChunks();
@@ -147,14 +137,16 @@ export function useFileTransfer() {
         if (data.type === "file-chunk") {
             const {
                 chunk,
+                iv,
                 index,
                 totalChunks,
              } = data.payload;
+
+            if(!aesKey) return;
+            const decrypted = await decryptChunk(chunk, iv, aesKey);
         
-            // chunksRef.current[index] = chunk;              
-            await saveChunk(index, chunk);
+            await saveChunk(index, decrypted);
             receivedChunksRef.current++;
-            // const received = chunksRef.current.filter(Boolean).length;      
             const received = receivedChunksRef.current;
             const progress = Math.round((received / totalChunks) * 100);
             setReceiveProgress(progress);
@@ -167,7 +159,6 @@ export function useFileTransfer() {
             setDownloadETA(eta);
         
             if (received === totalChunks ) {        
-                // const blob = reassembleChunks(chunksRef.current);        
                 const chunks =
                 await loadAllChunks();
                 const blob = new Blob(chunks, 

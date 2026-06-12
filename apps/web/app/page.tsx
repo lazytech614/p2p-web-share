@@ -27,20 +27,23 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { exportKey, generateAESKey } from "@/lib/crypto";
 
 export default function Home() {
   const { socket } = useSocket();
   const { peerId, peer } = usePeer();
 
   const [roomId, setRoomId] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
   const [receiverConnected, setReceiverConnected] = useState(false);
   const [connection, setConnection] = useState<DataConnection | null>(null);
-
   const [isDragging, setIsDragging] = useState(false);
   const [copiedRoomId, setCopiedRoomId] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
+  const aesKeyRef = useRef<CryptoKey | null>(null);
 
   const {
     selectedFile,
@@ -54,14 +57,20 @@ export default function Home() {
 
   // ── Socket setup ──────────────────────────────────────────────────────────
 
-  const createRoom = () => {
+  const createRoom = async() => {
     socket.emit("createRoom");
   };
 
   useEffect(() => {
-    socket.on("roomCreated", (id: string) => {
-      setRoomId(id);
+    socket.on("roomCreated", async roomId => {
+      setRoomId(roomId);
+      const key = await generateAESKey();
+      aesKeyRef.current = key;
+      const keyString = await exportKey(key);
+      const url = `${window.location.origin}/room/${roomId}#key=${keyString}`;
+      setShareUrl(url);
     });
+
     return () => { socket.off("roomCreated"); };
   }, [socket]);
 
@@ -130,10 +139,7 @@ export default function Home() {
 
   // ── Copy helpers ──────────────────────────────────────────────────────────
 
-  const shareLink =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/room/${roomId}`
-      : `/room/${roomId}`;
+  const shareLink = shareUrl;
 
   const copyText = (text: string, setter: (v: boolean) => void) => {
     navigator.clipboard?.writeText(text);
@@ -367,7 +373,7 @@ export default function Home() {
           </Button>
 
           <Button
-            onClick={() => connection && sendFile(connection)}
+            onClick={() => connection && sendFile(connection, aesKeyRef.current!)}
             disabled={!canSend}
             className="bg-blue-600 hover:bg-blue-500 text-white border-0 disabled:opacity-40 disabled:bg-blue-900"
           >

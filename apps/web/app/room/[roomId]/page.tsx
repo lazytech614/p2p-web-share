@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
 import { usePeer } from "@/hooks/usePeer";
@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { AutoDownloadToggle } from "@/components/auto-download-toggle";
+import { importKey } from "@/lib/crypto";
 
 export default function RoomPage() {
   const { socket } = useSocket();
@@ -33,6 +34,8 @@ export default function RoomPage() {
   const [joined, setJoined] = useState(false);
   const [connection, setConnection] = useState<DataConnection | null>(null);
   const [connectionLost, setConnectionLost] = useState(false);
+
+  const aesKeyRef = useRef<CryptoKey | null>(null);
 
   const params = useParams();
   const roomId = params.roomId as string;
@@ -48,6 +51,25 @@ export default function RoomPage() {
     autoDownload,
     setAutoDownload
   } = useFileTransfer();
+
+  // Load AES key
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    const keyString =
+      hash.replace(
+        "#key=",
+        ""
+      );
+
+    if (!keyString) return;
+
+    importKey(keyString)
+      .then(key => {
+        aesKeyRef.current = key;
+      });
+
+  }, []);
 
   // Join room
   useEffect(() => {
@@ -77,7 +99,7 @@ export default function RoomPage() {
 
     const handleConnection = (conn: DataConnection) => {
       setConnection(conn);
-      conn.on("data", (rawData) => handleIncomingData(rawData));
+      conn.on("data", (rawData) => handleIncomingData(rawData, aesKeyRef.current));
       conn.on("close", () => setConnectionLost(true));
     };
 
