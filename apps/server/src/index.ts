@@ -1,29 +1,19 @@
 import express from "express";
 import cors from "cors";
-
-import type { Room } from "@repo/types";
-
-const room: Room = {
-  roomId: "test-room",
-  createdAt: Date.now(),
-};
-
-console.log(room);
+import { createServer } from "http";
+import { setupSocket } from "./socket";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (_, res) => {
-  res.json({
-    success: true,
-    message: "P2P Web Share Server Running",
-  });
-});
+const httpServer = createServer(app);
+
+setupSocket(httpServer);
 
 const PORT = 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`Server running on ${PORT}`);
 });
