@@ -13,6 +13,7 @@ import {
   splitFileIntoChunks 
 } from "@/lib/fileChunker";
 import { hashBlob, hashFile } from "@/lib/crypto";
+import { triggerDownload } from "@/lib/download";
 
 export function useFileTransfer() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -26,12 +27,19 @@ export function useFileTransfer() {
     const [downloadETA, setDownloadETA] = useState("");
     const [verified, setVerified] = useState<boolean | null>(null);
     const [history, setHistory] = useState<TransferRecord[]>([]);
+    const [autoDownload, _setAutoDownload] = useState(false)
 
     const chunksRef = useRef<ArrayBuffer[]>([]);
     const incomingFileRef = useRef<FileMetadata | null>(null);
     const downloadStartTimeRef = useRef(0);
     const senderHashRef = useRef("");
     const rebuiltHashRef = useRef("");
+    const autoDownloadRef = useRef(false);
+
+    const setAutoDownload = (value: boolean) => {
+      autoDownloadRef.current = value;
+      _setAutoDownload(value);
+    };
 
     const tryVerify = () => {
       if (!senderHashRef.current) return;
@@ -143,6 +151,9 @@ export function useFileTransfer() {
                 rebuiltHashRef.current = rebuiltHash;
 
                 tryVerify();
+                if (autoDownloadRef.current) {
+                  triggerDownload(blob, incomingFileRef.current!.name);
+                }
             }
         }
 
@@ -168,6 +179,8 @@ export function useFileTransfer() {
     uploadETA,
     downloadSpeed,
     downloadETA,
-    verified
+    verified,
+    autoDownload,
+    setAutoDownload,
   };
 }

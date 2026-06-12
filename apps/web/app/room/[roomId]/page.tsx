@@ -23,6 +23,8 @@ import {
   WifiOff,
   CheckCircle2,
 } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
+import { AutoDownloadToggle } from "@/components/auto-download-toggle";
 
 export default function RoomPage() {
   const { socket } = useSocket();
@@ -42,7 +44,9 @@ export default function RoomPage() {
     downloadSpeed,
     downloadETA,
     handleIncomingData,
-    verified
+    verified,
+    autoDownload,
+    setAutoDownload
   } = useFileTransfer();
 
   // Join room
@@ -111,17 +115,21 @@ export default function RoomPage() {
       <div className="w-full max-w-lg flex flex-col gap-6">
 
         {/* ── Wordmark ── */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-950 border border-blue-800 flex items-center justify-center">
-            <Antenna className="w-4 h-4 text-blue-400" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-950 border border-blue-800 flex items-center justify-center">
+              <Antenna className="w-4 h-4 text-blue-400" />
+            </div>
+            <span className="text-sm font-medium text-zinc-100">WebShare</span>
+            <Badge
+              variant="outline"
+              className="font-mono text-[10px] text-zinc-500 border-zinc-700 px-1.5 py-0"
+            >
+              P2P
+            </Badge>
           </div>
-          <span className="text-sm font-medium text-zinc-100">WebShare</span>
-          <Badge
-            variant="outline"
-            className="font-mono text-[10px] text-zinc-500 border-zinc-700 px-1.5 py-0"
-          >
-            P2P
-          </Badge>
+          <AutoDownloadToggle enabled={autoDownload}
+  onToggle={setAutoDownload} />
         </div>
 
         {/* ── File card ── */}
@@ -245,14 +253,13 @@ export default function RoomPage() {
               receivedBlob && incomingFile && verified &&
               triggerDownload(receivedBlob, incomingFile.name)
             }
-            disabled={!receivedBlob || !incomingFile || !verified}
+            disabled={!receivedBlob || !incomingFile || !verified || autoDownload}
             className="bg-blue-600 hover:bg-blue-500 text-white border-0 disabled:opacity-40 disabled:bg-blue-900"
           >
             <ArrowRightLeft className="w-4 h-4 mr-2" />
-            Download file
+            {!autoDownload ? "Download File" : "Auto Download Enabled"}
           </Button>
         </div>
-
       </div>
     </main>
   );
