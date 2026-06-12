@@ -1,9 +1,69 @@
-import {FileMetadata} from "@repo/types"
+"use client";
 
-const Home = () => {
+import { useSocket } from "@/hooks/useSocket";
+import { useState, useEffect } from "react";
+
+export default function Home() {
+  const { socket } = useSocket();
+
+  const [roomId, setRoomId] = useState("");
+  const [receiverConnected, setReceiverConnected] = useState(false);
+
+  const createRoom = () => {
+    socket.emit("createRoom");
+  };
+
+  useEffect(() => {
+    socket.on(
+      "roomCreated",
+      (roomId) => {
+        setRoomId(roomId);
+      }
+    );
+
+    return () => {
+      socket.off("roomCreated");
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    socket.on(
+      "userJoined",
+      () => {
+        setReceiverConnected(true);
+      }
+    );
+
+    return () => {
+      socket.off("userJoined");
+    };
+  }, [socket]);
+
   return (
-    <div>Home</div>
-  )
-}
+    <main className="p-10 flex flex-col gap-4">
+      <button
+        onClick={createRoom}
+      >
+        Create Room
+      </button>
 
-export default Home
+      {roomId && (
+        <div>
+          <p>Room ID: {roomId}</p>
+
+          <p>
+            Link:
+            {window.location.origin}
+            /room/{roomId}
+          </p>
+        </div>
+      )}
+
+      {
+        receiverConnected
+          ? "Receiver Connected ✅"
+          : "Waiting For Receiver..."
+      }
+    </main>
+  );
+}
