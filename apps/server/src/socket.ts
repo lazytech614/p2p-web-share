@@ -7,6 +7,7 @@ export function setupSocket(server: HttpServer) {
   const io = new Server(server, {
     cors: {
       origin: "*",
+      methods: ["GET", "POST"],
     },
   });
 
@@ -15,121 +16,52 @@ export function setupSocket(server: HttpServer) {
 
     socket.on("createRoom", () => {
         const roomId = generateRoomId();
-
-        roomManager.createRoom(
-            roomId,
-            socket.id
-        );
-
+        roomManager.createRoom(roomId, socket.id);
         socket.join(roomId);
-
-        socket.emit(
-            "roomCreated",
-            roomId
-        );
-
-        console.log(
-            `Room ${roomId} created by ${socket.id}`
-        );
+        socket.emit("roomCreated", roomId);
     });
 
     socket.on("joinRoom", (roomId: string) => {
-        const room =
-        roomManager.joinRoom(
-            roomId,
-            socket.id
-        );
+        const room = roomManager.joinRoom(roomId, socket.id);
 
         if (!room) {
-            socket.emit(
-                "roomNotFound"
-            );
+            socket.emit("roomNotFound");
             return;
         }
 
         socket.join(roomId);
-
-        socket.emit(
-        "joinedRoom",
-        roomId
-        );
-
+        socket.emit("joinedRoom", roomId);
         io.to(room.hostId).emit(
-        "userJoined",
-        socket.id
-        );
-
-        console.log(
-        `${socket.id} joined ${roomId}`
+            "userJoined",
+             socket.id
         );
     });
 
     socket.on("peerReady", (roomId, peerId) => {
-        //TODO: debug logs (remove later)
-        console.log(
-        "Received peerReady:",
-        {
-            roomId,
-            peerId,
-            socketId: socket.id,
-        }
-        );
         const room = roomManager.getRoom(roomId);
-
         if (!room) return;
 
-        if (
-        socket.id === room.hostId
-        ) {
-        roomManager.setHostPeerId(
-            roomId,
-            peerId
-        );
+        if (socket.id === room.hostId) {
+            roomManager.setHostPeerId(roomId, peerId);
         }
 
-        if (
-        socket.id === room.guestId
-        ) {
-        roomManager.setGuestPeerId(
-            roomId,
-            peerId
-        );
+        if (socket.id === room.guestId) {
+            roomManager.setGuestPeerId(roomId, peerId);
         }
 
-        const updatedRoom =
-        roomManager.getRoom(roomId);
+        const updatedRoom = roomManager.getRoom(roomId);
+        if (updatedRoom?.hostPeerId && updatedRoom?.guestPeerId) {
+            io.to(updatedRoom.hostId).emit(
+                "peerReady",
+                updatedRoom.guestPeerId
+            );
 
-        //TODO: debug logs (remove later)
-        console.log(
-        "Host Peer:",
-        updatedRoom?.hostPeerId
-        );
-
-        console.log(
-        "Guest Peer:",
-        updatedRoom?.guestPeerId
-        );
-
-        if (
-        updatedRoom?.hostPeerId &&
-        updatedRoom?.guestPeerId
-        ) {
-        io.to(
-            updatedRoom.hostId
-        ).emit(
-            "peerReady",
-            updatedRoom.guestPeerId
-        );
-
-        io.to(
-            updatedRoom.guestId!
-        ).emit(
-            "peerReady",
-            updatedRoom.hostPeerId
-        );
+            io.to(updatedRoom.guestId!).emit(
+                "peerReady",
+                updatedRoom.hostPeerId
+            );
         }
-    }
-    );
+    });
 
     socket.on("disconnect", () => {
         console.log(`🔴🔴 ${socket.id} disconnected`);

@@ -21,13 +21,9 @@ class RoomManager {
 
   joinRoom(roomId: string, guestId: string) {
     const room = this.rooms.get(roomId);
-
-    if (!room) {
-      return null;
-    }
+    if (!room) return null;
 
     room.guestId = guestId;
-
     return room;
   }
 
@@ -43,9 +39,7 @@ class RoomManager {
     roomId: string,
     peerId: string
   ) {
-    const room =
-      this.rooms.get(roomId);
-
+    const room = this.rooms.get(roomId);
     if (!room) return;
 
     room.hostPeerId = peerId;
@@ -55,9 +49,7 @@ class RoomManager {
     roomId: string,
     peerId: string
   ) {
-    const room =
-      this.rooms.get(roomId);
-
+    const room = this.rooms.get(roomId);
     if (!room) return;
 
     room.guestPeerId = peerId;
