@@ -1,17 +1,7 @@
 export interface ClientToServerEvents {
   createRoom: () => void;
   joinRoom: (roomId: string) => void;
-}
-
-export interface ServerToClientEvents {
-  roomCreated: (roomId: string) => void;
-  userJoined: (socketId: string) => void;
-  roomNotFound: () => void;
-}
-
-export interface ClientToServerEvents {
-  createRoom: () => void;
-  joinRoom: (roomId: string) => void;
+  peerReady: (roomId: string, peerId: string) => void;
 }
 
 export interface ServerToClientEvents {
@@ -19,4 +9,5 @@ export interface ServerToClientEvents {
   joinedRoom: (roomId: string) => void;
   roomNotFound: () => void;
   userJoined: (userId: string) => void;
+  peerReady: (peerId: string) => void;
 }

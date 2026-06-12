@@ -64,6 +64,73 @@ export function setupSocket(server: HttpServer) {
         );
     });
 
+    socket.on("peerReady", (roomId, peerId) => {
+        //TODO: debug logs (remove later)
+        console.log(
+        "Received peerReady:",
+        {
+            roomId,
+            peerId,
+            socketId: socket.id,
+        }
+        );
+        const room = roomManager.getRoom(roomId);
+
+        if (!room) return;
+
+        if (
+        socket.id === room.hostId
+        ) {
+        roomManager.setHostPeerId(
+            roomId,
+            peerId
+        );
+        }
+
+        if (
+        socket.id === room.guestId
+        ) {
+        roomManager.setGuestPeerId(
+            roomId,
+            peerId
+        );
+        }
+
+        const updatedRoom =
+        roomManager.getRoom(roomId);
+
+        //TODO: debug logs (remove later)
+        console.log(
+        "Host Peer:",
+        updatedRoom?.hostPeerId
+        );
+
+        console.log(
+        "Guest Peer:",
+        updatedRoom?.guestPeerId
+        );
+
+        if (
+        updatedRoom?.hostPeerId &&
+        updatedRoom?.guestPeerId
+        ) {
+        io.to(
+            updatedRoom.hostId
+        ).emit(
+            "peerReady",
+            updatedRoom.guestPeerId
+        );
+
+        io.to(
+            updatedRoom.guestId!
+        ).emit(
+            "peerReady",
+            updatedRoom.hostPeerId
+        );
+        }
+    }
+    );
+
     socket.on("disconnect", () => {
         console.log(`🔴🔴 ${socket.id} disconnected`);
     });

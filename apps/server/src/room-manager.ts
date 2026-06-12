@@ -38,6 +38,30 @@ class RoomManager {
   getAllRooms() {
     return [...this.rooms.values()];
   }
+
+  setHostPeerId(
+    roomId: string,
+    peerId: string
+  ) {
+    const room =
+      this.rooms.get(roomId);
+
+    if (!room) return;
+
+    room.hostPeerId = peerId;
+  }
+
+  setGuestPeerId(
+    roomId: string,
+    peerId: string
+  ) {
+    const room =
+      this.rooms.get(roomId);
+
+    if (!room) return;
+
+    room.guestPeerId = peerId;
+  }
 }
 
 export const roomManager = new RoomManager();
