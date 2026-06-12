@@ -5,10 +5,19 @@ export interface MetadataMessage {
   payload: FileMetadata;
 }
 
-export interface ChunkMessage {
-  type: "chunk";
-  chunkIndex: number;
+export interface FileDataMessage {
+  type: "file-data";
   payload: ArrayBuffer;
+}
+
+export interface ChunkMessage {
+  type: "file-chunk";
+
+  payload: {
+    chunk: ArrayBuffer;
+    index: number;
+    totalChunks: number;
+  };
 }
 
 export interface CompleteMessage {
@@ -20,8 +29,18 @@ export interface ErrorMessage {
   message: string;
 }
 
+export interface HashMessage {
+  type: "hash";
+
+  payload: {
+    sha256: string;
+  };
+}
+
 export type DataChannelMessage =
   | MetadataMessage
+  | FileDataMessage
   | ChunkMessage
   | CompleteMessage
+  | HashMessage
   | ErrorMessage;

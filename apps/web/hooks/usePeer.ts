@@ -13,15 +13,7 @@ export function usePeer() {
   useEffect(() => {
     const p = new Peer();
 
-    p.on("open", (id) => {
-      console.log(
-        "Peer ID:",
-        id
-      );
-
-      setPeerId(id);
-    });
-
+    p.on("open", (id) => setPeerId(id));
     setPeer(p);
 
     return () => {

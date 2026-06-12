@@ -5,3 +5,10 @@ export interface TransferProgress {
   speedMbps: number;
   remainingSeconds: number;
 }
+
+export interface TransferRecord {
+  name: string;
+  size: number;
+  verified: boolean;
+  timestamp: number;
+}
