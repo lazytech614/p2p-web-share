@@ -6,9 +6,11 @@ import { generateRoomId } from "./utils/generateRoomId";
 export function setupSocket(server: HttpServer) {
   const io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: ["https://p2p-web-share-web.vercel.app", "http://localhost:3000"],
       methods: ["GET", "POST"],
     },
+    transports: ["polling", "websocket"],
+    path: "/socket.io"
   });
 
   io.on("connection", (socket) => {

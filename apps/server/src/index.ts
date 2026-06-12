@@ -6,7 +6,10 @@ import { setupSocket } from "./socket";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: ["https://p2p-web-share-web.vercel.app", "http://localhost:3000"],
+  credentials: true
+}));
 app.use(express.json());
 
 const httpServer = createServer(app);
